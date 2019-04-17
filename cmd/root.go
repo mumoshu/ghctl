@@ -29,7 +29,7 @@ func newRootCmd(out, errOut io.Writer) *cobra.Command {
 	rootCmd.PersistentFlags().StringVar(&cfgDir, "ghconfig", "", "config directory (default: $HOME/.ghctl)")
 	rootCmd.AddCommand(NewVersionCmd(out, errOut))
 	rootCmd.AddCommand(ctx.NewContextCmd(out, errOut))
-	rootCmd.AddCommand(repo.NewRepositoryCmd(out, errOut))
+	rootCmd.AddCommand(repo.NewGetCommand(out, errOut))
 	return rootCmd
 }
 

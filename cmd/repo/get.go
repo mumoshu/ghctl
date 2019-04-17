@@ -3,6 +3,8 @@ package repo
 import (
 	"fmt"
 	"io"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/Ladicle/ghctl/pkg/config"
@@ -11,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type getOption struct {
+type getRepoOptions struct {
 	ClientGenerator func(token string) *github.Client
 	Organization    string
 	Repository      string
@@ -19,12 +21,12 @@ type getOption struct {
 	Output          string
 }
 
-func newGetCmd(out, errOut io.Writer) *cobra.Command {
-	o := getOption{
+func newGetRepoCmd(out, errOut io.Writer) *cobra.Command {
+	o := getRepoOptions{
 		ClientGenerator: github.NewClient,
 	}
 	cmd := &cobra.Command{
-		Use:   "get [options] <org/repository>",
+		Use:   "repo [options] <org/repository>",
 		Short: "Outputs repository data",
 		Run: func(cmd *cobra.Command, args []string) {
 			util.HandleCmdError(o.validate(args), errOut)
@@ -37,14 +39,33 @@ func newGetCmd(out, errOut io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (o *getOption) validate(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("target repository is required")
-	}
+func (o *getRepoOptions) validate(args []string) error {
+	//if len(args) < 1 {
+	//	return fmt.Errorf("target repository is required")
+	//}
 
-	orgRepo := strings.Split(args[0], "/")
+	var orgRepo []string
+	if len(args) > 0 {
+		orgRepo = strings.Split(args[0], "/")
+	} else {
+		orgRepo = []string{}
+	}
 	if len(orgRepo) == 2 {
 		o.Organization, o.Repository = orgRepo[0], orgRepo[1]
+	} else if len(orgRepo) == 1 {
+		dir, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		dir = path.Base(dir)
+		o.Organization = dir
+		o.Repository = orgRepo[0]
+	} else if len(orgRepo) == 0 {
+		dir, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		o.Organization = dir
 	} else {
 		return fmt.Errorf("%s is not right 'org/repo' format", args[0])
 	}
@@ -55,13 +76,14 @@ func (o *getOption) validate(args []string) error {
 	return nil
 }
 
-func (o *getOption) execute(out io.Writer) error {
+func (o *getRepoOptions) execute(out io.Writer) error {
 	var repo *github.Repository
 	if o.Cache {
 		// TODO: get data from cache
 		return fmt.Errorf("cache option have not implemented yet")
-	} else {
-		cli := o.ClientGenerator(config.GetCurrentContext().AccessToken)
+	}
+	cli := o.ClientGenerator(config.GetCurrentContext().AccessToken)
+	if o.Repository != "" {
 		newRepo, err := cli.GetRepository(o.Organization, o.Repository)
 		if err != nil {
 			return err
@@ -69,12 +91,29 @@ func (o *getOption) execute(out io.Writer) error {
 		repo = newRepo
 
 		// TODO: update cache
-	}
 
-	if d, err := util.GetPrettyOutput(o.Output, *repo); err != nil {
-		return err
+		d, err := util.GetPrettyOutput(o.Output, *repo)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "%s", string(d))
 	} else {
+		newOrg, err := cli.GetOrganization(o.Organization)
+		if err != nil {
+			return err
+		}
+		org := newOrg
+
+		// TODO: update cache
+
+		// TODO: filter repositories by match
+
+		d, err := util.GetPrettyOutput(o.Output, *org)
+		if err != nil {
+			return err
+		}
 		fmt.Fprintf(out, "%s", string(d))
 	}
+
 	return nil
 }

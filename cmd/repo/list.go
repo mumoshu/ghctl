@@ -55,23 +55,23 @@ func (o *listOption) execute(out io.Writer) error {
 	if o.Cache {
 		// TODO: get data from cache
 		return fmt.Errorf("cache option have not implemented yet")
-	} else {
-		cli := o.ClientGenerator(config.GetCurrentContext().AccessToken)
-		newOrg, err := cli.GetOrganization(o.Organization)
-		if err != nil {
-			return err
-		}
-		org = newOrg
-
-		// TODO: update cache
 	}
+	cli := o.ClientGenerator(config.GetCurrentContext().AccessToken)
+	newOrg, err := cli.GetOrganization(o.Organization)
+	if err != nil {
+		return err
+	}
+	org = newOrg
+
+	// TODO: update cache
 
 	// TODO: filter repositories by match
 
-	if d, err := util.GetPrettyOutput(o.Output, *org); err != nil {
+	d, err := util.GetPrettyOutput(o.Output, *org)
+	if err != nil {
 		return err
-	} else {
-		fmt.Fprintf(out, "%s", string(d))
 	}
+	fmt.Fprintf(out, "%s", string(d))
+
 	return nil
 }

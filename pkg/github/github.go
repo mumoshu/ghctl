@@ -48,8 +48,11 @@ func (c *Client) GetRepository(org, repo string) (*Repository, error) {
 
 	param := map[string]interface{}{
 		"owner": githubql.String(org),
-		"name":  githubql.String(repo),
 		"nodeN": githubql.Int(maxNode),
+	}
+
+	if repo != "" {
+		param["name"] = githubql.String(repo)
 	}
 
 	err := c.GQL.Query(context.Background(), &q, param)
@@ -93,12 +96,12 @@ func (c *Client) GetOrganization(org string) (*Organization, error) {
 	}
 
 	var repos []Repository
-	lastID := (*githubql.String)(nil)
+	//lastID := (*githubql.String)(nil)
 	for {
 		param := map[string]interface{}{
 			"nodeN": githubql.Int(maxNode),
 			"login": githubql.String(org),
-			"after": lastID,
+			//"after": lastID,
 		}
 
 		err := c.GQL.Query(context.Background(), &q, param)
